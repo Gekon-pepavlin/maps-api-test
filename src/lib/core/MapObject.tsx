@@ -1,0 +1,178 @@
+import { v4 as uuid } from 'uuid';
+import { LocationPoint } from './LocationPoint';
+
+export type MapOptions = L.Map;
+
+
+type EventName = "activechange" | "childrenchange";
+export default class MapObject{
+    name: string;
+    id: string;
+
+
+    parent: MapObject | undefined;
+    protected children: MapObject[] = [];
+    protected location: LocationPoint;
+
+    map: MapOptions;
+
+    isActive: boolean = false;
+
+
+
+    eventCallbacks: Record<string, ((e: any)=>void)[]> = {};
+
+
+    get hasParent(){
+        return this.parent !== undefined
+    }
+    
+
+    constructor(map: MapOptions, name: string = "MapObject"){
+        this.name = name;
+        this.id = uuid();
+
+        // Attach map
+        this.map = map;
+        this.setMap(map);
+
+        this.location = [0,0];
+    }
+
+    toString(){
+        return this.name
+    }
+
+    getLocation(){
+        return this.location;
+    }
+
+    setLocation(location: LocationPoint){
+        this.location = location
+    }
+
+    protected setMap(map: L.Map){
+        this.map = map;
+    }
+    protected add(child: MapObject){
+        this.children.push(child);
+        child._setParent(this);
+
+        this.recalculateLocation()
+        this.callEventCallback("childrenchange", this.children);
+
+    }
+    protected remove(child: MapObject){
+        const index = this.children.indexOf(child);
+        if(index>=0){
+            this.children[index].parent = undefined
+            // remove from array
+            this.children.splice(index, 1);
+
+        }else{
+            console.log("Child not found.")
+        }
+
+        this.recalculateLocation()
+        this.callEventCallback("childrenchange", this.children);
+
+    }
+
+    private recalculateLocation(){
+        if(this.children.length==0) return;
+
+        let sum = {lat: 0, lng: 0};
+
+        this.children.forEach( (child: MapObject)=>{
+            const location = child.getLocation();
+            sum.lat += location[0];
+            sum.lng += location[1];
+        }
+        );
+        sum.lat = sum.lat / this.children.length;
+        sum.lng = sum.lng / this.children.length;
+
+        this.setLocation([sum.lat, sum.lng]);
+    }
+
+    private _setParent(parent?: MapObject){
+        if(!parent){
+            console.log("Parent is undefined");
+            return;
+        }
+
+        if(this.parent === parent){
+            return;
+        }
+        
+        if(this.hasParent){
+            this.parent?.remove(this)
+        }
+
+        this.parent = parent;
+        this.parent.setMap(this.map);
+    }
+    protected setParent(parent?: MapObject){
+        this._setParent(parent);
+
+        if(!this.parent){
+            console.log("Parent is undefined");
+            return;
+        }
+
+        this.parent.add(this);
+    }
+
+    addListener(event: EventName | any, callback: (e: any)=>void){
+        if(!this.eventCallbacks[event]) this.eventCallbacks[event] = [];
+        this.eventCallbacks[event].push(callback);
+    }
+
+    protected callEventCallback(event: EventName | any, e: any){
+        if(!this.eventCallbacks[event]) return;
+        this.eventCallbacks[event].forEach( (callback)=>{
+            callback(e);
+        })
+    }
+
+
+
+    setActive(isActive: boolean, force: boolean = false) : any{
+        if(!this.map){
+            console.log("Cannot change active property because map is not attached");
+            return;
+        };
+        if(!force && isActive === this.isActive) return;
+        this.isActive = isActive;
+
+        this.children.forEach( (child)=>{
+            child.setActive(isActive, force);
+        });
+
+        if(this.hasParent) this.parent?.onChildrenActiveChange();
+
+        this.callEventCallback("activechange", this.isActive);
+        return true;
+    }
+
+
+    
+    protected onChildrenActiveChange(){
+        let allSame = true;
+        let first = true;
+        let lastIsActive : boolean = true;
+
+        for(let i=0; i<this.children.length; i++){
+            const l = this.children[i];
+
+
+            if(!first && lastIsActive != l.isActive) allSame = false;
+
+            first = false;
+            lastIsActive = l.isActive;
+        }
+
+        if(!first && allSame) this.setActive(lastIsActive)
+        
+    }
+}
