@@ -22,6 +22,7 @@ export default class GeometryMarker extends Marker{
 
     setActive(isActive: boolean){
         if(isActive === this.isActive) return;
+
         this.isActive = isActive;
 
         if(!this.map) return;

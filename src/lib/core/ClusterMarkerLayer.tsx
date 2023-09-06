@@ -1,126 +1,209 @@
-import L from "leaflet";
 import 'leaflet.markercluster';
 import MapObject, { MapOptions } from "./MapObject";
-import MarkerLayer from "./MarkerLayer";
-import { LocationPoint } from "./LocationPoint";
-import Marker from "./Marker";
-import { useState } from "react";
+import MarkerLayer from './MarkerLayer';
+import Marker from './Marker';
+import { useMemo } from 'react';
 
-function ClusterMarkerContainer({element, mapObject}: {element: (count:number)=>React.ReactElement, mapObject: MapObject}){
-    const clusterLayer = mapObject as ClusterMarkerLayer;
-    const [count, setCount] = useState(clusterLayer.markerCount);
-    clusterLayer.addListener("childrenchange", (children: MapObject[])=>{
-        setCount(clusterLayer.markerCount);
-    })
+class ClusterLayer{
 
-    return <div>
-        {element(count)}
-    </div>
-}
-
-export default class ClusterMarkerLayer extends Marker{
+    private map: MapOptions;
     protected radius: number;
-    protected clusters: Record<number, Record<number, ClusterMarkerLayer>> = {}
-    protected clustersArray: ClusterMarkerLayer[] = [];
-    private groupingZoom : number;
+    private groupingZoom: number;
 
-    private _markerCount = 0;
+    private parentCluster: ClusterLayer | undefined;
+    private mainParentCluster: ClusterLayer;
 
-    get markerCount(){
-        return this._markerCount;
-    }
+    private clusters: Record<number, Record<number, ClusterLayer>> = {};
+    private clustersArray: ClusterLayer[] = [];
 
-    protected clusterReactElement: (count:number)=>React.ReactElement;
+    // All objects in this and all below clusters 
+    private objects: MapObject[] = []; 
+    // Objects that are only in this cluster
+    private onlyHereObjects: MapObject[] = [];
 
-    constructor(reactElement: (count:number)=>React.ReactElement, map: MapOptions, radiusInPixels: number = 100, groupingZoom? : number, location?: LocationPoint){
-        super(location ? location[0] : 0, location ? location[1] : 0, (marker: Marker, map: MapOptions)=>{
-            return <ClusterMarkerContainer element={reactElement} mapObject={marker}/>
-        }, map);
-        this.name = "ClusterLayer";
+    private marker: Marker;
+    private markerLayer: MarkerLayer;
 
-        this.clusterReactElement = reactElement;
+
+    constructor(map: MapOptions, groupingZoom: number, radiusInPixels: number, parentCluster?: ClusterLayer, mainParentCluster?: ClusterLayer){
+        this.groupingZoom = groupingZoom;
+        this.map = map;
         this.radius = radiusInPixels;
 
-        this.location = location || [0,0];
+        this.parentCluster = parentCluster;
+        this.mainParentCluster = mainParentCluster || this;
 
-        this.groupingZoom = groupingZoom || map.getMinZoom();
+        this.markerLayer = new MarkerLayer(map);
 
-        this.initialize();
-
-    }
-
-    private onZoom = (zoom:number)=>{
-        const shouldBeGrouped = false;//zoom == this.groupingZoom;
-        if(shouldBeGrouped){
-            this.group();
-        }else {
-            this.ungroup();
-        }
-
-    }
-
-    private group(){
-        // if(this.children.length <= 1){
-        //     this.ungroup()
-            
-
-        //     return;
-        // }
-        this.setMarkerVisibility(true)
-        this.children.forEach( (child: MapObject)=>{
-            this.setActive(false, false);
-        })
-    }
-    private ungroup(){
-        this.setMarkerVisibility(false)
-        this.children.forEach( (child: MapObject)=>{
-            this.setActive(true, false);
-        })
-    }
-
-    private initialize(){
-        this.map.on("zoomend", ()=>{
-            this.onZoom(this.map.getZoom());
-        })
-    };
-
-    add(marker: MapObject){
-        this._markerCount++;
-        super.add(marker);
+        this.marker = new Marker(0,0,()=>{
+            const num = useMemo(()=>Math.random(),[])
+            return <div style={{backgroundColor:"white"}}>
+                {num}
+            </div>
+        }, map)
 
 
-
-        this.addToCluster(marker);
-        this.setActive(true, true);
-        this.onZoom(this.map.getZoom());
-    }
-
-    
-
-
-
-    private addToCluster(marker: MapObject){
-
-        if(this.groupingZoom > this.map.getMaxZoom()){
-            return;
-        }
-        const point = this.map.project(marker.getLocation(),this.groupingZoom);
-        const clusterXIndex = Math.floor(point.x / this.radius);
-        const clusterYIndex = Math.floor(point.y / this.radius);
+        this.parentCluster?.markerLayer.add(this.marker);
 
         
 
+        this.initialize()
+
+        this.redisplay()
+    }
+
+    getClusters(){
+        return this.clustersArray;
+    }
+
+    getObjects(){
+        return this.objects;
+    }
+
+    add(object: MapObject){
+        // Add to all objects array
+        this.objects.push(object);
+
+
+        // Check if this is the first object in this cluster
+        const previousCount = this.objects.length;
+        
+        // If this is the first object in this cluster, add without creating subclusters
+        if(previousCount == 0 || this.noMoreClusters()){
+            this.onlyHereObjects.push(object);
+            this.markerLayer.add(object);
+        }
+        
+        // If this is the second object in this cluster, create subclusters and add first object to them
+        if(previousCount == 1){
+            if(! this.noMoreClusters()){
+                this.assignToCluster(this.objects[0]);
+                this.onlyHereObjects.shift();
+            }
+        }
+
+        // Add to subclusters all next objects
+        if(previousCount > 0){
+            this.assignToCluster(object);
+        }
+
+        // object.setActive(false); // temporary
+
+        this.redisplay()
+
+    }
+
+    private noMoreClusters(){
+        if(this.mainParentCluster.getMaxSublayerCount() >= 17) return true;
+        return this.groupingZoom >= this.map.getMaxZoom();
+    }
+
+    private assignToCluster(object: MapObject){
+
+        if(this.noMoreClusters()) return;
+        
+        // Get cluster position index
+        const point = this.map.project(object.getLocation(),this.groupingZoom);
+        const clusterXIndex = Math.floor(point.x / this.radius);
+        const clusterYIndex = Math.floor(point.y / this.radius);
+        
+                
+        // Create cluster arr if it doesn't exist
         if(!this.clusters[clusterXIndex]) this.clusters[clusterXIndex] = {};
+
+        // Create cluster if it doesn't exist
         if(!this.clusters[clusterXIndex][clusterYIndex]){
-            // Create new cluster if it doesn't exist
-            const cluster = new ClusterMarkerLayer(this.clusterReactElement, this.map, this.radius, this.groupingZoom+1,marker.getLocation());
+            const cluster = new ClusterLayer(this.map, this.groupingZoom+1, this.radius, this, this.mainParentCluster);
             this.clusters[clusterXIndex][clusterYIndex] = cluster;
-            super.add(cluster);
             this.clustersArray.push(this.clusters[clusterXIndex][clusterYIndex]);
         }
 
-        this.clusters[clusterXIndex][clusterYIndex].add(marker);
+        this.clusters[clusterXIndex][clusterYIndex].add(object);
+        
+    }
 
+    private initialize(){
+        this.map.on("zoomend", (e)=>{
+            this.redisplay()
+        })
+
+        this.markerLayer.addListener("locationchange", ()=>{
+            this.marker.setLocation(this.markerLayer.getLocation());
+            console.log("Marker location", this.marker.getLocation(),this.marker.id);
+
+        })
+        this.marker.setLocation(this.markerLayer.getLocation());
+
+        this.redisplay()
+    }
+
+    private redisplay(){
+        this.display(this.map.getZoom());
+    }
+
+    private display(zoom: number){
+        if( zoom >= this.groupingZoom){
+            this.ungroup();
+        }else {
+            this.group();
+        }
+
+        // console.log("Displaying cluster layer at zoom: ", zoom, " with grouping zoom: ", this.groupingZoom);
+
+        if (zoom !== this.groupingZoom ){
+            this.marker.setActive(false);
+
+        }else{
+            this.marker.setActive(true);
+        }
+        
+    }
+
+    private group(){
+        this.onlyHereObjects.forEach((o)=>{
+            o.setActive(false);
+        })
+    }
+
+    private ungroup(){
+        this.onlyHereObjects.forEach((o)=>{
+            o.setActive(true);
+        })
+    }
+
+    getMaxSublayerCount(){
+        
+        if(this.clustersArray.length>0){
+            let max = 0;
+            this.clustersArray.forEach( (cluster)=>{
+                const count = cluster.getMaxSublayerCount();
+                if(count > max) max = count;
+            })
+            return max+1;
+        }
+        return 0;
+    }
+}
+
+export default class ClusterMarkerLayer extends MapObject{
+    protected clusterReactElement: (count:number)=>React.ReactElement;
+
+    private mainCluster;
+
+    constructor(reactElement: (count:number)=>React.ReactElement, map: MapOptions, radiusInPixels: number = 50){
+        super(map,"ClusterLayer");
+
+        this.clusterReactElement = reactElement;
+
+        this.mainCluster = new ClusterLayer(map, map.getMinZoom(), radiusInPixels);
+    }
+
+
+    add(marker: MapObject){
+        super.add(marker);
+        this.mainCluster.add(marker);
+
+        console.log("Max sublayer count: ", this.mainCluster.getMaxSublayerCount());
     }
 
 

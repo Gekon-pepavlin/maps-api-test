@@ -68,6 +68,8 @@ function App() {
   useEffect(()=>{
     if(!map.initialized) return;
 
+    setLayers([])
+
     const layer1 = map.createClusterLayer((count)=>{
       return <Maja count={count}/>
     });

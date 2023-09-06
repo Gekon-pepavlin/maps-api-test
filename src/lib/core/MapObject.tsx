@@ -4,7 +4,7 @@ import { LocationPoint } from './LocationPoint';
 export type MapOptions = L.Map;
 
 
-type EventName = "activechange" | "childrenchange";
+type EventName = "activechange" | "childrenchange" | "locationchange";
 export default class MapObject{
     name: string;
     id: string;
@@ -20,7 +20,7 @@ export default class MapObject{
 
 
 
-    eventCallbacks: Record<string, ((e: any)=>void)[]> = {};
+    private eventCallbacks: Record<string, ((e: any)=>void)[]> = {};
 
 
     get hasParent(){
@@ -48,7 +48,11 @@ export default class MapObject{
     }
 
     setLocation(location: LocationPoint){
+        if(this.location[0] === location[0] && this.location[1] === location[1]) return;
+        
         this.location = location
+        this.callEventCallback("locationchange", this.location);
+        this.parent?.recalculateLocation();
     }
 
     protected setMap(map: L.Map){
@@ -92,6 +96,10 @@ export default class MapObject{
         sum.lat = sum.lat / this.children.length;
         sum.lng = sum.lng / this.children.length;
 
+        const finalLocation = [sum.lat, sum.lng];
+
+        if(this.location[0] === finalLocation[0] && this.location[1] === finalLocation[1]) return;
+
         this.setLocation([sum.lat, sum.lng]);
     }
 
@@ -123,9 +131,11 @@ export default class MapObject{
         this.parent.add(this);
     }
 
-    addListener(event: EventName | any, callback: (e: any)=>void){
+    addListener(event: EventName | any, callback: (e: any)=>void, callOnAdd: boolean = false){
         if(!this.eventCallbacks[event]) this.eventCallbacks[event] = [];
         this.eventCallbacks[event].push(callback);
+
+        if(callOnAdd) this.callEventCallback(event, null);
     }
 
     protected callEventCallback(event: EventName | any, e: any){

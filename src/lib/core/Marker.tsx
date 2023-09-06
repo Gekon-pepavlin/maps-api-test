@@ -1,5 +1,5 @@
 import L, { LatLngExpression } from 'leaflet';
-import React from 'react'
+import React, { useEffect } from 'react'
 import { renderToString } from 'react-dom/server';
 import MarkerLayer from './MarkerLayer';
 import ReactDOM from 'react-dom/client';
@@ -8,9 +8,12 @@ import MapObject, { MapOptions } from './MapObject';
 
 const MarkerContainer = ({marker, map, element}:{marker: Marker, map: MapOptions, element: (marker:Marker, map:MapOptions)=>React.ReactElement}) => {
     const [visible, setVisible] = React.useState(true);
-    marker.addListener("visibilitychnage", (isActive: boolean)=>{
-        setVisible(marker.getMarkerVisibility());
-    })
+    useEffect(()=>{
+        marker.addListener("visibilitychange", ()=>{
+            setVisible(marker.getMarkerVisibility());
+        }, true)
+    },[]);
+
     return <div style={{position: "absolute", display: visible?"block":"none"}}>
         {element(marker, map)}
     </div>
@@ -83,7 +86,8 @@ export default class Marker extends MapObject{
     setMarkerVisibility(visible: boolean){
         this.visible = visible;
 
-        this.callEventCallback("visiblitychange", visible);
+        this.callEventCallback("visibilitychange", visible);
+
 
     }
 

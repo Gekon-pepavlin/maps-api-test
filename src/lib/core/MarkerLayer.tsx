@@ -14,6 +14,5 @@ export default class MarkerLayer extends MapObject{
     add(marker: MapObject){
         super.add(marker);
     }
-
-
+    
 }
