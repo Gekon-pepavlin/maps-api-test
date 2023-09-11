@@ -10,6 +10,7 @@ import Krecek from './components/Krecek';
 import MapObject from './lib/core/MapObject';
 import { getRandomPosition } from './utils/utils';
 import Maja from './components/Maja';
+import { count } from 'console';
 
 
 
@@ -75,14 +76,31 @@ function App() {
     });
     add(layer1)
 
-    const COUNT = 10;
-    for(let i = 0; i < COUNT; i++){
-      const location = getRandomPosition();
-      const marker = map.createMarker(location[0], location[1], ()=>{
-        return <Krecek/>
-      })
-      marker?.addToLayer(layer1)
+    // const COUNT = 4;
+    // for(let i = 0; i < COUNT; i++){
+      // const location = getRandomPosition();
+    //   const marker = map.createMarker(location[0], location[1], ()=>{
+    //     return <Krecek/>
+    //   })
+    //   marker?.addToLayer(layer1)
+    // }
+
+    const count = 10;
+    for(let x=0; x<count; x++){
+      for(let y=0; y<count; y++){
+        const min = [50.022037214814084, 14.289502003176219];
+        const max = [50.012637040409494, 14.304438263084045];
+
+        const latitude = min[0] + (max[0] - min[0]) / count * x;
+        const longitude = min[1] + (max[1] - min[1]) / count * y;
+
+        const marker = map.createMarker(latitude, longitude, ()=>{
+          return <Krecek/>
+        } )
+        marker?.addToLayer(layer1)
+      }
     }
+
 
   },[map.initialized])
 
