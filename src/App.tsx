@@ -11,6 +11,7 @@ import MapObject from './lib/core/MapObject';
 import { getRandomPosition } from './utils/utils';
 import Maja from './components/Maja';
 import { count } from 'console';
+import { GeometryType } from './lib/core/Geometry';
 
 
 
@@ -50,6 +51,9 @@ function App() {
   const [layers, setLayers] = useState<MapObject[]>([]);
   const [justNumber, setJustNumber] = useState(0);
 
+  const [zoom, setZoom] = useState(0);
+
+
   
 
   const rerender = (()=>{
@@ -69,11 +73,28 @@ function App() {
   useEffect(()=>{
     if(!map.initialized) return;
 
+    map.map?.on("zoomend", ()=>{
+      setZoom(map.map?.getZoom() || 0)
+    })
+    setZoom(map.map?.getZoom() || 0)
+
     setLayers([])
 
     const layer1 = map.createClusterLayer((count)=>{
-      return <Maja count={count}/>
+      return <div style={{backgroundColor:"white"}}>
+          <h1>Count: {count}</h1>
+      </div>
     });
+
+    const geom = map.createGeometry([[
+      [50.02307171162239, 14.290628725435235],
+      [50.009255314878274, 14.292171043377705],
+      [50.01660123561199, 14.297886692223328],
+      [50.015901672493776, 14.304509586917458],
+      [50.02114814761987, 14.302876544390136]
+    ]], "polygon")
+
+    // const layer1 = map.createLayer()
     add(layer1)
 
     // const COUNT = 4;
@@ -85,7 +106,8 @@ function App() {
     //   marker?.addToLayer(layer1)
     // }
 
-    const count = 10;
+    const count = 20; // 55 minimum // 100 optimum
+    const markers : Marker[] = [];
     for(let x=0; x<count; x++){
       for(let y=0; y<count; y++){
         const min = [50.022037214814084, 14.289502003176219];
@@ -97,9 +119,17 @@ function App() {
         const marker = map.createMarker(latitude, longitude, ()=>{
           return <Krecek/>
         } )
-        marker?.addToLayer(layer1)
+
+        markers.push(marker as Marker);
       }
     }
+
+    layer1?.add(markers)
+
+    const gm = map.createGeometry([[[50.022037214814084, 14.289502003176219],[50.012637040409494, 14.304438263084045]]],
+      "line"
+    )
+
 
 
   },[map.initialized])
@@ -109,6 +139,7 @@ function App() {
       <map.container style={{flex:1}} > 
         <div style={{margin: 10, padding: 5, backgroundColor: "whitesmoke", width: 120}}>
           ahoj
+          Aktualní zoom: {zoom}
           <br/>
           {layers.map((layer, i)=>{
             

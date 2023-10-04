@@ -58,7 +58,16 @@ export default class MapObject{
     protected setMap(map: L.Map){
         this.map = map;
     }
-    protected add(child: MapObject){
+    protected add(child: MapObject | MapObject[]){
+        if(child instanceof Array){
+            child.forEach( (c)=>{
+                this._add(c);
+            })
+        }else{
+            this._add(child);
+        }
+    }
+    private _add(child: MapObject){
         this.children.push(child);
         child._setParent(this);
 
@@ -109,11 +118,11 @@ export default class MapObject{
             return;
         }
 
-        if(this.parent === parent){
+        else if(this.parent === parent){
             return;
         }
         
-        if(this.hasParent){
+        else if(this.hasParent){
             this.parent?.remove(this)
         }
 
@@ -147,7 +156,7 @@ export default class MapObject{
 
 
 
-    setActive(isActive: boolean, force: boolean = false) : any{
+    setActive(isActive: boolean, force: boolean = false, ignoreChildren = false) : any{
         if(!this.map){
             console.log("Cannot change active property because map is not attached");
             return;
@@ -155,14 +164,25 @@ export default class MapObject{
         if(!force && isActive === this.isActive) return;
         this.isActive = isActive;
 
-        this.children.forEach( (child)=>{
-            child.setActive(isActive, force);
-        });
+        if(!ignoreChildren){
+            this.children.forEach( (child)=>{
+                child.setActive(isActive, force);
+            });
+        }
 
         if(this.hasParent) this.parent?.onChildrenActiveChange();
 
         this.callEventCallback("activechange", this.isActive);
         return true;
+    }
+
+    removeListener(event: EventName | any, callback: (e: any)=>void){
+        if(!this.eventCallbacks[event]) return;
+
+        const index = this.eventCallbacks[event].indexOf(callback);
+        if(index>=0){
+            this.eventCallbacks[event].splice(index, 1);
+        }
     }
 
 
@@ -184,5 +204,12 @@ export default class MapObject{
 
         if(!first && allSame) this.setActive(lastIsActive)
         
+    }
+
+    delete(){
+        if(this.hasParent) this.parent?.remove(this);
+        this.children.forEach( (child)=>{
+            child.delete();
+        })
     }
 }

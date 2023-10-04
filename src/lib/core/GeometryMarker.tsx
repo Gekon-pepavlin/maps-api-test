@@ -15,20 +15,23 @@ export default class GeometryMarker extends Marker{
     
     constructor( points: LocationPoint[][], type: GeometryType, marker: (marker: GeometryMarker, map: any)=>React.ReactElement, map: MapOptions){
         super(0,0, marker as (marker: Marker, map: any)=>React.ReactElement, map);
-        this.geometryType = type;
+
         this.leafletObject = type == "polygon" ? L.polygon(points) : L.polyline(points);  
+        this.geometryType = type;
         this.points = points; 
+
+        this.setActive(true)
     }
 
     setActive(isActive: boolean){
+        if(!this.leafletObject)return;
         if(isActive === this.isActive) return;
 
         this.isActive = isActive;
 
         if(!this.map) return;
         if( this.isActive ){
-            this.leafletObject.addTo( this.map );   
-            
+            this.leafletObject.addTo(this.map)
             // @ts-ignore
             this.svgPathHtmlElement = this.leafletObject._path;
             this.svgPathHtmlElement.setAttribute("pointer-events", "auto");
@@ -81,6 +84,11 @@ export default class GeometryMarker extends Marker{
 
     getLeafletObject(){
         return this.leafletObject;
+    }
+
+
+    setStyle(style: L.PathOptions){
+        this.leafletObject.setStyle(style);
     }
 }
 

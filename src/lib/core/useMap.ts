@@ -128,13 +128,16 @@ export default function useMap(props? : UseMapProps ) {
         return m;
     }
     const createGeometryAndAdd = (points: LocationPoint[][], type : GeometryType) => {
-        
+        if(!map){
+            console.log(MAP_NOT_INITIALIZED);
+            return;
+        }
         const m = createGeometry(points.map((p)=>{
             return p.map((p)=>{
                 const loc = transform(p);
                 return [loc[0], loc[1]];
             })
-        }), type) ;
+        }), type, map) ;
         addGeometry( m);
         return m;
     }
@@ -166,8 +169,6 @@ export default function useMap(props? : UseMapProps ) {
         createGeometryMarker: createGeometryMarkerAndAdd,
         createLayer: createLayerAndAdd,
         createClusterLayer: createClusterLayerAndAdd,
-        // addMarker,
-        // addGeometry,
         markers,
         geometries,
         projection,

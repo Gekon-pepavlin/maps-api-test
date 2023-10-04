@@ -101,6 +101,11 @@ export default class Marker extends MapObject{
         super.setParent(layer);
     }
 
+    delete(): void {
+        super.delete();
+        this.marker.remove();
+    }
+
     
 
 }

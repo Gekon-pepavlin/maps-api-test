@@ -9,3 +9,17 @@ export function getRandomPosition() : LocationPoint{
     
     return [latitude, longitude ];
   }
+
+
+export function measureTime<T>(callback: ()=>T, name: string = "Function", print: boolean = false){
+  const start = performance.now();
+
+  const result = callback();
+
+  const end = performance.now();
+  const time =  end - start;
+
+  if(print) console.log(`${name} took ${time}ms`);
+
+  return result;
+}

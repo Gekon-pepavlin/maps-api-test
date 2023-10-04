@@ -11,7 +11,7 @@ export default class MarkerLayer extends MapObject{
         this.setActive(true, true);
     }
 
-    add(marker: MapObject){
+    add(marker: MapObject | MapObject[]){
         super.add(marker);
     }
     
