@@ -105,7 +105,7 @@ export default function useMap(props? : UseMapProps ) {
     const createMarkerAndAdd = (latitude: number, longitude: number, marker: (marker: Marker, map: MapOptions)=>React.ReactElement) => {
         if(!map){
             console.log(MAP_NOT_INITIALIZED);
-            return;
+            return {} as Marker;
         }
         const loc = transform([latitude, longitude]);
         const m = createMarker(loc[0], loc[1], marker, map) ;
@@ -116,7 +116,7 @@ export default function useMap(props? : UseMapProps ) {
     const createGeometryMarkerAndAdd = (points: LocationPoint[][], type: GeometryType, marker: (marker: GeometryMarker, map: MapOptions)=>React.ReactElement) => {
         if(!map){
             console.log(MAP_NOT_INITIALIZED);
-            return;
+            return {} as GeometryMarker;
         }
         const m = createGeometryMarker(points.map((p)=>{
             return p.map((p)=>{
@@ -130,7 +130,7 @@ export default function useMap(props? : UseMapProps ) {
     const createGeometryAndAdd = (points: LocationPoint[][], type : GeometryType) => {
         if(!map){
             console.log(MAP_NOT_INITIALIZED);
-            return;
+            return {} as Geometry;
         }
         const m = createGeometry(points.map((p)=>{
             return p.map((p)=>{
@@ -145,7 +145,7 @@ export default function useMap(props? : UseMapProps ) {
     const createLayerAndAdd = () => {
         if(!map){
             console.log(MAP_NOT_INITIALIZED);
-            return;
+            return {} as MarkerLayer;
         }
         const l = new MarkerLayer(map);
         return l;
@@ -156,7 +156,7 @@ export default function useMap(props? : UseMapProps ) {
 
         if(!map){
             console.log(MAP_NOT_INITIALIZED);
-            return;
+            return {} as ClusterMarkerLayer;
         }
         const l = new ClusterMarkerLayer(element, map);
         return l;
