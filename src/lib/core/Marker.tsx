@@ -7,7 +7,7 @@ import { LocationPoint } from './LocationPoint';
 import MapObject, { MapOptions } from './MapObject';
 
 const MarkerContainer = ({marker, map, element}:{marker: Marker, map: MapOptions, element: (marker:Marker, map:MapOptions)=>React.ReactElement}) => {
-    const [visible, setVisible] = React.useState(true);
+    const [visible, setVisible] = React.useState(marker.isActive);
     useEffect(()=>{
         marker.addListener("activechange", ()=>{
             setVisible(marker.isActive);
@@ -56,11 +56,12 @@ export default class Marker extends MapObject{
             const htmlRoot = ReactDOM.createRoot(htmlElement);
             htmlRoot.render(<MarkerContainer marker={this} map={this.map} element={this.reactElement}/>)
 
-        // Disable click propagation to leaflet map
-        L.DomEvent.disableClickPropagation(this.htmlElement);
-        
+            // Disable click propagation to leaflet map
+            L.DomEvent.disableClickPropagation(this.htmlElement);
+            
         })
-        this.setActive(true, true);
+
+        this.setActive(true);
 
     }
 
@@ -89,6 +90,7 @@ export default class Marker extends MapObject{
 
     delete(): void {
         super.delete();
+        
         this.marker.remove();
     }
 

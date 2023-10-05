@@ -221,5 +221,6 @@ export default class MapObject{
         this.children.forEach( (child)=>{
             child.delete();
         })
+        this.initialized = false;
     }
 }

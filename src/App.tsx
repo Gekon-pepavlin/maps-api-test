@@ -80,14 +80,14 @@ function App() {
 
     setLayers([])
 
-    // const layer1 = map.createClusterLayer((count)=>{
-    //   return <div style={{backgroundColor:"white"}}>
-    //       <h1>Count: {count}</h1>
-    //   </div>
-    // });
+    const layer1 = map.createClusterLayer((count)=>{
+      return <div style={{backgroundColor:"white"}}>
+          <h1>Count: {count}</h1>
+      </div>
+    });
 
 
-    const layer1 = map.createLayer();
+    // const layer1 = map.createLayer();
 
     const geom = map.createGeometry([[
       [50.02307171162239, 14.290628725435235],
@@ -110,7 +110,7 @@ function App() {
     //   marker?.addToLayer(layer1)
     // }
 
-    const count = 20; // 55 minimum // 100 optimum
+    const count = 55; // 55 minimum // 100 optimum
     const markers : Marker[] = [];
     for(let x=0; x<count; x++){
       for(let y=0; y<count; y++){
