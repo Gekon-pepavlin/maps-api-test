@@ -23,14 +23,14 @@ export default class GeometryMarker extends Marker{
         this.setActive(true)
     }
 
-    setActive(isActive: boolean){
+    setActive(isActive: boolean, force: boolean = false){
         if(!this.leafletObject)return;
-        if(isActive === this.isActive) return;
+        if(isActive === this.isActive && !force) return;
 
         this.isActive = isActive;
 
         if(!this.map) return;
-        if( this.isActive ){
+        if( this.isActive && this.initialized){
             this.leafletObject.addTo(this.map)
             // @ts-ignore
             this.svgPathHtmlElement = this.leafletObject._path;
@@ -44,7 +44,7 @@ export default class GeometryMarker extends Marker{
 
 
         }else{
-            this.leafletObject.removeFrom( this.map );
+            if(this.initialized) this.leafletObject.removeFrom( this.map );
         }
 
         super.setActive(isActive, true);
@@ -71,6 +71,14 @@ export default class GeometryMarker extends Marker{
         
         }
         
+    }
+
+    initialize(): boolean {
+        const added = super.initialize();
+
+        this.setActive(this.isActive, true);
+
+        return added;
     }
 
     getPoints(): LocationPoint[][]{

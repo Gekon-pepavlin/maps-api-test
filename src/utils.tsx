@@ -1,4 +1,4 @@
-import { LocationPoint } from "../lib/core/LocationPoint";
+import { LocationPoint } from "./lib/core/LocationPoint";
 
 export function getRandomPosition() : LocationPoint{
     const min = [50.022037214814084, 14.289502003176219];

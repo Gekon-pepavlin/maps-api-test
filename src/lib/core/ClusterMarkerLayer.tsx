@@ -6,7 +6,7 @@ import React from 'react';
 import { v4 as uuid } from 'uuid';
 import { LocationPoint } from './LocationPoint';
 import { start } from 'repl';
-import { measureTime } from '../../utils/utils';
+import { measureTime } from '../../utils';
 
 
 type GroupsDict = Record<number, Record<number, Group>>;
@@ -314,14 +314,14 @@ export default class ClusterMarkerLayer extends MapObject{
             const currentZoom = this.map.getZoom();
 
             const willBeActive = this.clustersByZoom[currentZoom];
-            willBeActive.forEach((cluster)=>{
+            willBeActive?.forEach((cluster)=>{
                 cluster.redisplay()
             });
 
             if(this._lastZoom >= 0 && this._lastZoom !== currentZoom){
                 const wasActive = this.clustersByZoom[this._lastZoom];
-                const filteredWasActive = wasActive.filter((cluster)=>willBeActive.indexOf(cluster)<0);
-                filteredWasActive.forEach((cluster)=>{
+                const filteredWasActive = wasActive?.filter((cluster)=>willBeActive.indexOf(cluster)<0);
+                filteredWasActive?.forEach((cluster)=>{
                     cluster.redisplay()
                 });
             }

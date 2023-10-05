@@ -17,7 +17,7 @@ export default class MapObject{
     map: MapOptions;
 
     isActive: boolean = false;
-
+    initialized: boolean = false;
 
 
     private eventCallbacks: Record<string, ((e: any)=>void)[]> = {};
@@ -206,6 +206,16 @@ export default class MapObject{
         
     }
 
+    initialize(){
+        const inMap = this.initialized;
+
+        this.children.forEach( (child)=>{
+            child.initialize();
+        });
+
+        this.initialized = true;
+        return inMap !== this.initialized;
+    }
     delete(){
         if(this.hasParent) this.parent?.remove(this);
         this.children.forEach( (child)=>{
