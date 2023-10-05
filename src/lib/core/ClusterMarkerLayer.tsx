@@ -7,6 +7,7 @@ import { v4 as uuid } from 'uuid';
 import { LocationPoint } from './LocationPoint';
 import { start } from 'repl';
 import { measureTime } from '../../utils';
+import { on } from 'events';
 
 
 type GroupsDict = Record<number, Record<number, Group>>;
@@ -48,7 +49,7 @@ class Cluster{
 
     private _onRelase?: ()=>void;
 
-    private isActive = true;
+    private isActive = false;
 
     constructor(
         map: MapOptions,
@@ -128,6 +129,7 @@ class Cluster{
         this.clusters.forEach((cluster)=>{
             cluster.initialize();
         });
+
     }
 
     public initializeObjects(){
@@ -139,17 +141,18 @@ class Cluster{
         })
     }
     
-    redisplay(){
-        this._display(this.map.getZoom());
+    redisplay(force: boolean = false){
+        // console.log("Redisplaying", this.isActive)
+        this._display(this.map.getZoom(), force);
     }
 
-    private _display(zoom: number){
+    private _display(zoom: number, force?: boolean){
         if (zoom >= this.startZoom && zoom <= this.endZoom && this.clusters.length>0 && this.isActive){
-            this.marker.setActive(true);
-            this.marker.initialize();
+            this.marker?.setActive(true);
+            this.marker?.initialize();
 
         }else{
-            this.marker.delete()
+            this.marker?.delete()
 
         }
 
@@ -184,14 +187,15 @@ class Cluster{
 
     }
 
-    setActive(isActive: boolean){
+    setActive(isActive: boolean, force: boolean = false){
         this.clusters.forEach((cluster)=>{
             cluster.setActive(isActive);
         })
-
-        if(this.isActive === isActive) return;
+        
+        
+        if(this.isActive === isActive && !force) return;
         this.isActive = isActive;
-        this.redisplay();
+        this.redisplay(true);
     }
 
     getTotalSubclustersCount(){
@@ -341,8 +345,10 @@ export default class ClusterMarkerLayer extends MapObject{
 
         measureTime(()=>
             this.mainClusters.forEach((cluster)=>{
-            cluster.initialize();
-        }), "Initializing clusters");
+                cluster.setActive(this.isActive)
+                cluster.initialize();
+            }
+        ), "Initializing clusters");
 
         measureTime(()=>
             this.mainClusters.forEach((cluster)=>{
@@ -351,7 +357,7 @@ export default class ClusterMarkerLayer extends MapObject{
             "Adding marker layers to one layer");
         
 
-        this._onZoomEnd();
+        // this._onZoomEnd();
 
     }
     //#region SPLIT_TO_CLUSTERS functions
@@ -453,7 +459,7 @@ export default class ClusterMarkerLayer extends MapObject{
         super.setActive(isActive, force, true);
 
         this.mainClusters.forEach((cluster)=>{
-            cluster.setActive(isActive);
+            cluster.setActive(isActive, true);
         })
 
     }
@@ -464,6 +470,8 @@ export default class ClusterMarkerLayer extends MapObject{
         this.mainClusters.forEach((cluster)=>{
             cluster.initializeObjects();
         })
+
+        this._onZoomEnd()
 
         return r;
     }

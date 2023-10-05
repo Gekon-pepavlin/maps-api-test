@@ -100,6 +100,7 @@ function App() {
 
     // const layer1 = map.createLayer()
     add(layer1)
+    console.log("Layer is active?",layer1?.isActive)
 
     // const COUNT = 4;
     // for(let i = 0; i < COUNT; i++){
@@ -110,7 +111,7 @@ function App() {
     //   marker?.addToLayer(layer1)
     // }
 
-    const count = 55; // 55 minimum // 100 optimum
+    const count = 10; // 55 minimum // 100 optimum
     const markers : Marker[] = [];
     for(let x=0; x<count; x++){
       for(let y=0; y<count; y++){

@@ -84,6 +84,7 @@ export default class Marker extends MapObject{
         const added = super.initialize();
 
         this.marker.addTo(this.map);
+        
 
         return added;
     }

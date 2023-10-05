@@ -16,7 +16,7 @@ export default class MapObject{
 
     map: MapOptions;
 
-    isActive: boolean = false;
+    isActive: boolean = true;
     initialized: boolean = false;
 
 
