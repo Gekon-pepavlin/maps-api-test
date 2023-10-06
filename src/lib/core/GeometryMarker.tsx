@@ -13,8 +13,9 @@ export default class GeometryMarker extends Marker{
     private points: LocationPoint[][] = [];
     private geometryType: GeometryType;
     
-    constructor( points: LocationPoint[][], type: GeometryType, marker: (marker: GeometryMarker, map: any)=>React.ReactElement, map: MapOptions){
-        super(0,0, marker as (marker: Marker, map: any)=>React.ReactElement, map);
+    constructor( points: LocationPoint[][], type: GeometryType, marker: (marker: GeometryMarker, map: any)=>React.ReactElement, 
+        map: MapOptions, name: string = "GeometryMarker"){
+        super(0,0, marker as (marker: Marker, map: any)=>React.ReactElement, map, name);
 
         this.leafletObject = type == "polygon" ? L.polygon(points) : L.polyline(points);  
         this.geometryType = type;
@@ -30,7 +31,7 @@ export default class GeometryMarker extends Marker{
         this.isActive = isActive;
 
         if(!this.map) return;
-        if( this.isActive && this.initialized){
+        if( this.isActive && this.isInitialized){
             this.leafletObject.addTo(this.map)
             // @ts-ignore
             this.svgPathHtmlElement = this.leafletObject._path;
@@ -44,7 +45,7 @@ export default class GeometryMarker extends Marker{
 
 
         }else{
-            if(this.initialized) this.leafletObject.removeFrom( this.map );
+            if(this.isInitialized) this.leafletObject.removeFrom( this.map );
         }
 
         super.setActive(isActive, true);

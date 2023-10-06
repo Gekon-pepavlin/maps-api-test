@@ -8,7 +8,7 @@ export type GeometryType = "polygon" | "line";
 export default class Geometry extends GeometryMarker{
 
     constructor(points: LocationPoint[][], type: GeometryType, map: MapOptions){
-        super(points, type, ()=><></>, map)
+        super(points, type, ()=><></>, map, "Geometry")
     }
 }
 

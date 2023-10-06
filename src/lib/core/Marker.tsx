@@ -29,8 +29,9 @@ export default class Marker extends MapObject{
 
     protected reactElement: (marker: Marker, map: MapOptions)=>React.ReactElement;
 
-    constructor(latitude: number, longitude: number, marker: (marker: Marker, map: MapOptions)=>React.ReactElement, map: MapOptions){
-        super(map, "Marker");
+    constructor(latitude: number, longitude: number, marker: (marker: Marker, map: MapOptions)=>React.ReactElement, 
+        map: MapOptions, name: string = "Marker"){
+        super(map, name);
         this.reactElement = marker;
         const html = "<div></div>";
         

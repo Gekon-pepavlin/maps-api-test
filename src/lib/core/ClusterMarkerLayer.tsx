@@ -5,9 +5,6 @@ import Marker from './Marker';
 import React from 'react';
 import { v4 as uuid } from 'uuid';
 import { LocationPoint } from './LocationPoint';
-import { start } from 'repl';
-import { measureTime } from '../../utils';
-import { on } from 'events';
 
 
 type GroupsDict = Record<number, Record<number, Group>>;
@@ -82,41 +79,32 @@ class Cluster{
 
     public initialize(){
 
-        this.markerLayer = measureTime(()=>
-            new MarkerLayer(this.map),
-            "Creating marker layer"
-        )
+        this.markerLayer = new MarkerLayer(this.map)
 
-        measureTime( ()=> {
-            this.marker = new Marker(0,0,(marker, map)=>{
-                const onClick = () =>{
-                    map.flyTo(marker.getLocation(), this.endZoom+1);
-                }
+        this.marker = new Marker(0,0,(marker, map)=>{
+            const onClick = () =>{
+                map.flyTo(marker.getLocation(), this.endZoom+1);
+            }
+
+            return <div onClick={onClick}>
+                {this.reactElement(this.allSubObjectsCount)}
+            </div>
+        }, this.map)
+        this.marker.setActive(false)
+        
+
+
+        this.markerLayer.add(this.objects)
+
+        this.parentCluster?.markerLayer.add(this.marker);
     
-                return <div onClick={onClick}>
-                    {this.reactElement(this.allSubObjectsCount)}
-                </div>
-            }, this.map)
-            this.marker.setActive(false)
-        }, "Creating marker");
-        
-
-
-        measureTime( ()=> {
-            this.markerLayer.add(this.objects)
-
-            this.parentCluster?.markerLayer.add(this.marker);
-        }, "Adding objects to marker layer")
-        
 
         const onLocationChange = () =>{
             this.marker.setLocation(this.markerLayer.getLocation());
         }
 
-        measureTime( ()=> {
-            this.markerLayer.addListener("locationchange", onLocationChange)
-            this.marker.setLocation(this.markerLayer.getLocation());
-        },"Setting up location change listener");
+        this.markerLayer.addListener("locationchange", onLocationChange)
+        this.marker.setLocation(this.markerLayer.getLocation());
         
 
 
@@ -274,25 +262,23 @@ export default class ClusterMarkerLayer extends MapObject{
 
     private _lastZoom = -1;
     private _onZoomChange(){
-        measureTime(()=>{
-            const currentZoom = this.map.getZoom();
+        const currentZoom = this.map.getZoom();
 
-            const willBeActive = this.clustersByZoom[currentZoom];
-            willBeActive?.forEach((cluster)=>{
+        const willBeActive = this.clustersByZoom[currentZoom];
+        willBeActive?.forEach((cluster)=>{
+            cluster.redisplay()
+        });
+
+        if(this._lastZoom >= 0 && this._lastZoom !== currentZoom){
+            const wasActive = this.clustersByZoom[this._lastZoom];
+            const filteredWasActive = wasActive?.filter((cluster)=>willBeActive.indexOf(cluster)<0);
+            filteredWasActive?.forEach((cluster)=>{
                 cluster.redisplay()
             });
-
-            if(this._lastZoom >= 0 && this._lastZoom !== currentZoom){
-                const wasActive = this.clustersByZoom[this._lastZoom];
-                const filteredWasActive = wasActive?.filter((cluster)=>willBeActive.indexOf(cluster)<0);
-                filteredWasActive?.forEach((cluster)=>{
-                    cluster.redisplay()
-                });
-            }
+        }
 
 
-            this._lastZoom = currentZoom;
-        }, "On zoom change", true);
+        this._lastZoom = currentZoom;
         
     }
 
@@ -312,52 +298,41 @@ export default class ClusterMarkerLayer extends MapObject{
 
 
     private _set(markers: MapObject[]){
-        console.log("Starting to split to clusters of total count", markers.length)
+        // console.log("Starting to split to clusters of total count", markers.length)
 
         markers.forEach((marker)=>{
             marker.setActive(false);
         });
 
-        const clusters = measureTime(()=> 
-            this._splitToClusters(markers) , 
-            "Split to clusters");
+        const clusters = this._splitToClusters(markers)
 
         this.mainClusters.forEach((cluster)=>{
             cluster.release();
         });
         
-        this.mainClusters = measureTime(()=>
-            clusters.map((data) => createCluster(data, this.map, this.radius, this.clusterReactElement)),
-            "Creating clusters");
+        this.mainClusters = clusters.map((data) => createCluster(data, this.map, this.radius, this.clusterReactElement))
 
-        measureTime(()=>{
-            this.mainClusters.forEach((cluster)=>{
-                const allSubclusters = [cluster, ...cluster.getAllSubclusters()]; // Including itself
-                
-                allSubclusters.forEach((subcluster)=>{
-                    for(let zoom = subcluster.startZoom; zoom <= subcluster.endZoom; zoom++){
-                        if(!this.clustersByZoom[zoom]) this.clustersByZoom[zoom] = [];
-                        this.clustersByZoom[zoom].push(subcluster);
-                    }
-                })
+        this.mainClusters.forEach((cluster)=>{
+            const allSubclusters = [cluster, ...cluster.getAllSubclusters()]; // Including itself
+            
+            allSubclusters.forEach((subcluster)=>{
+                for(let zoom = subcluster.startZoom; zoom <= subcluster.endZoom; zoom++){
+                    if(!this.clustersByZoom[zoom]) this.clustersByZoom[zoom] = [];
+                    this.clustersByZoom[zoom].push(subcluster);
+                }
             })
-        }, "Passing clusters to zoom dictionary", true);
+        })
 
-        measureTime(()=>
-            this.mainClusters.forEach((cluster)=>{
-                cluster.setActive(this.isActive)
-                cluster.initialize();
-            }
-        ), "Initializing clusters");
+        this.mainClusters.forEach((cluster)=>{
+            cluster.setActive(this.isActive)
+            cluster.initialize();
+        })
 
-        measureTime(()=>
-            this.mainClusters.forEach((cluster)=>{
-                super.add(cluster.markerLayer);
-            }),
-            "Adding marker layers to one layer");
+        this.mainClusters.forEach((cluster)=>{
+            super.add(cluster.markerLayer);
+        })
         
 
-        // this._onZoomEnd();
 
     }
     //#region SPLIT_TO_CLUSTERS functions
@@ -371,51 +346,47 @@ export default class ClusterMarkerLayer extends MapObject{
         const min = this.map.getMinZoom();
         const max = this.map.getMaxZoom();
 
-        measureTime(()=> {
-            markers.forEach((marker)=>{
-                let lastGroup : Group | undefined;
-    
-                const location = marker.getLocation();
-    
-                for(let i = min; i <= max; i++){
-                    const [x,y] = this._getClusterIndexes(location, i);
-    
-                    const parentGroups = lastGroup ? (lastGroup as Group).groupsDict : mainGroupsDict;
-    
-                    if(!parentGroups[x]) parentGroups[x] = {};
-                    if(!parentGroups[x][y]) parentGroups[x][y] = {
-                        x, y, zoom: i,
-                        objects: [],
-                        groupsDict: {},
-                        groups: []
-                    };
-    
-                    const currentGroup : Group = parentGroups[x][y];
-                    if(lastGroup && lastGroup.groups.indexOf(currentGroup) < 0) lastGroup.groups.push(currentGroup);
-                    if(!lastGroup && mainGroups.indexOf(currentGroup) < 0) mainGroups.push(currentGroup);
-    
-    
-                    if(i === max)
-                        currentGroup.objects.push(marker);
-    
-                    lastGroup = currentGroup;
-    
-                
-    
-                }
-               
-    
-    
-            });
-        }, "Splitting to groups");
+        markers.forEach((marker)=>{
+            let lastGroup : Group | undefined;
+
+            const location = marker.getLocation();
+
+            for(let i = min; i <= max; i++){
+                const [x,y] = this._getClusterIndexes(location, i);
+
+                const parentGroups = lastGroup ? (lastGroup as Group).groupsDict : mainGroupsDict;
+
+                if(!parentGroups[x]) parentGroups[x] = {};
+                if(!parentGroups[x][y]) parentGroups[x][y] = {
+                    x, y, zoom: i,
+                    objects: [],
+                    groupsDict: {},
+                    groups: []
+                };
+
+                const currentGroup : Group = parentGroups[x][y];
+                if(lastGroup && lastGroup.groups.indexOf(currentGroup) < 0) lastGroup.groups.push(currentGroup);
+                if(!lastGroup && mainGroups.indexOf(currentGroup) < 0) mainGroups.push(currentGroup);
+
+
+                if(i === max)
+                    currentGroup.objects.push(marker);
+
+                lastGroup = currentGroup;
+
+            
+
+            }
+            
+
+
+        });
         
 
 
-        const result = measureTime(()=> 
-            mainGroups.map((group)=>{
+        const result = mainGroups.map((group)=>{
                 return this._simplifyGroup(group);
-            }),
-            "Simplifying groups")
+            })
         
 
         return result;

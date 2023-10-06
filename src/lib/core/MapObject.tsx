@@ -17,7 +17,7 @@ export default class MapObject{
     map: MapOptions;
 
     isActive: boolean = true;
-    initialized: boolean = false;
+    isInitialized: boolean = false;
 
 
     private eventCallbacks: Record<string, ((e: any)=>void)[]> = {};
@@ -27,6 +27,7 @@ export default class MapObject{
         return this.parent !== undefined
     }
     
+    private dontForgetTimeout;
 
     constructor(map: MapOptions, name: string = "MapObject"){
         this.name = name;
@@ -37,6 +38,12 @@ export default class MapObject{
         this.setMap(map);
 
         this.location = [0,0];
+
+
+        this.dontForgetTimeout = setTimeout(()=>{
+            if(!this.isInitialized) 
+                console.warn("Don't forget to call initialize() on", this.name, "object.")
+        }, 5000)
     }
 
     toString(){
@@ -207,20 +214,22 @@ export default class MapObject{
     }
 
     initialize(){
-        const inMap = this.initialized;
+        const inMap = this.isInitialized;
 
         this.children.forEach( (child)=>{
             child.initialize();
         });
 
-        this.initialized = true;
-        return inMap !== this.initialized;
+        clearTimeout(this.dontForgetTimeout);
+
+        this.isInitialized = true;
+        return inMap !== this.isInitialized;
     }
     delete(){
         if(this.hasParent) this.parent?.remove(this);
         this.children.forEach( (child)=>{
             child.delete();
         })
-        this.initialized = false;
+        this.isInitialized = false;
     }
 }

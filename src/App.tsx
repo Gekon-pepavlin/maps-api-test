@@ -8,7 +8,7 @@ import ClusterMarkerLayer from './lib/core/ClusterMarkerLayer';
 import TestComponent from './components/TestComponent';
 import Krecek from './components/Krecek';
 import MapObject from './lib/core/MapObject';
-import { getRandomPosition } from './utils';
+import { getRandomPosition } from './utils/utils';
 import Maja from './components/Maja';
 import { count } from 'console';
 import { GeometryType } from './lib/core/Geometry';
@@ -80,14 +80,14 @@ function App() {
 
     setLayers([])
 
-    const layer1 = map.createClusterLayer((count)=>{
-      return <div style={{backgroundColor:"white"}}>
-          <h1>Count: {count}</h1>
-      </div>
-    });
+    // const layer1 = map.createClusterLayer((count)=>{
+    //   return <div style={{backgroundColor:"white"}}>
+    //       <h1>Count: {count}</h1>
+    //   </div>
+    // });
 
 
-    // const layer1 = map.createLayer();
+    const layer1 = map.createLayer();
 
     const geom = map.createGeometry([[
       [50.02307171162239, 14.290628725435235],
@@ -96,9 +96,8 @@ function App() {
       [50.015901672493776, 14.304509586917458],
       [50.02114814761987, 14.302876544390136]
     ]], "polygon")
-    geom?.initialize()
+    // geom?.initialize()
 
-    // const layer1 = map.createLayer()
     add(layer1)
     console.log("Layer is active?",layer1?.isActive)
 
@@ -129,7 +128,7 @@ function App() {
       }
     }
 
-    layer1?.add(markers)
+    layer1.add(markers)
     layer1?.initialize()
 
     const gm = map.createGeometry([[[50.022037214814084, 14.289502003176219],[50.012637040409494, 14.304438263084045]]],
