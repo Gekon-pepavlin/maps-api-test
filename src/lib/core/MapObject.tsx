@@ -14,6 +14,8 @@ export default class MapObject{
     protected children: MapObject[] = [];
     protected location: LocationPoint;
 
+    private useAverageLocation: boolean = true;
+
     map: MapOptions;
 
     isActive: boolean = true;
@@ -100,6 +102,13 @@ export default class MapObject{
 
     private recalculateLocation(){
         if(this.children.length==0) return;
+
+        if(!this.useAverageLocation){
+            const middleObject = this.children[Math.floor(this.children.length/2)];
+            const location = middleObject.getLocation();
+            this.setLocation(location);
+            return;
+        }
 
         let sum = {lat: 0, lng: 0};
 
@@ -231,5 +240,10 @@ export default class MapObject{
             child.delete();
         })
         this.isInitialized = false;
+    }
+
+    setUseAverageLocation(useAverageLocation: boolean){
+        this.useAverageLocation = useAverageLocation;
+        this.recalculateLocation();
     }
 }

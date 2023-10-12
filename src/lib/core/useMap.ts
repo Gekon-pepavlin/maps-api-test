@@ -158,7 +158,7 @@ export default function useMap(props? : UseMapProps ) {
             console.log(MAP_NOT_INITIALIZED);
             return {} as ClusterMarkerLayer;
         }
-        const l = new ClusterMarkerLayer(element, map);
+        const l = new ClusterMarkerLayer(element, map, 200, false);
         return l;
     }
 

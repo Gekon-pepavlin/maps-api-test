@@ -47,10 +47,14 @@ class Cluster{
     private _onRelase?: ()=>void;
 
     private isActive = false;
+    private isInnerInitialized = false;
+
+    private useAverageLocation: boolean = true;
 
     constructor(
         map: MapOptions,
         radiusInPixels: number,
+        useAverageLocation: boolean,
         startZoom: number,
         endZoom: number,
         objects: MapObject[],
@@ -62,6 +66,7 @@ class Cluster{
 
         this.map = map;
         this.radius = radiusInPixels;
+        this.useAverageLocation = useAverageLocation;
         this.startZoom = startZoom;
         this.endZoom = endZoom;
         this.objects = objects;
@@ -69,7 +74,7 @@ class Cluster{
 
         this.reactElement = reactElement;
 
-        this.clusters = clustersData.map((data) => createCluster(data, map, radiusInPixels, reactElement, this));
+        this.clusters = clustersData.map((data) => createCluster(data, map, radiusInPixels, useAverageLocation, reactElement, this));
         
         this.allSubObjectsCount = objects.length + this.clusters.reduce((acc, cluster)=>acc + cluster.allSubObjectsCount, 0);
         
@@ -80,6 +85,7 @@ class Cluster{
     public initialize(){
 
         this.markerLayer = new MarkerLayer(this.map)
+        this.markerLayer.setUseAverageLocation(this.useAverageLocation);
 
         this.marker = new Marker(0,0,(marker, map)=>{
             const onClick = () =>{
@@ -118,6 +124,7 @@ class Cluster{
             cluster.initialize();
         });
 
+        this.isInnerInitialized = true;
     }
 
     public initializeObjects(){
@@ -130,11 +137,11 @@ class Cluster{
     }
     
     redisplay(force: boolean = false){
-        // console.log("Redisplaying", this.isActive)
         this._display(this.map.getZoom(), force);
     }
 
     private _display(zoom: number, force?: boolean){
+        if(!this.isInnerInitialized) return;
         if (zoom >= this.startZoom && zoom <= this.endZoom && this.clusters.length>0 && this.isActive){
             this.marker?.setActive(true);
             this.marker?.initialize();
@@ -215,11 +222,12 @@ class Cluster{
     }
 }
 
-function createCluster(data: ClusterData, map: MapOptions, radiusInPixels: number, 
+function createCluster(data: ClusterData, map: MapOptions, radiusInPixels: number, useAverageLocation: boolean,
         reactElement: (count:number)=>React.ReactElement,parentCluster?: Cluster){
     const cluster =  new Cluster(
         map,
         radiusInPixels,
+        useAverageLocation,
         data.startZoom,
         data.endZoom,
         data.objects,
@@ -236,6 +244,8 @@ export default class ClusterMarkerLayer extends MapObject{
 
     private radius: number;
 
+    private _useAverageLocation: boolean = true;
+
 
     private mainClusters: Cluster[] = [];
     private clustersByZoom: Record<number, Cluster[]> = {};
@@ -244,11 +254,13 @@ export default class ClusterMarkerLayer extends MapObject{
 
     private _onZoomEnd = this._onZoomChange.bind(this);
 
-    constructor(reactElement: (count:number)=>React.ReactElement, map: MapOptions, radiusInPixels: number = 200){
+    constructor(reactElement: (count:number)=>React.ReactElement, map: MapOptions, radiusInPixels: number = 200, averageLocation: boolean = false){
         super(map,"ClusterLayer");
 
         this.clusterReactElement = reactElement;
         this.radius = radiusInPixels;
+
+        this._useAverageLocation = averageLocation;
 
         // This marker fix the bug. If all submarker is not active, this is. The layer stays active
         const justMarker = new Marker(30,30,()=>{
@@ -298,7 +310,6 @@ export default class ClusterMarkerLayer extends MapObject{
 
 
     private _set(markers: MapObject[]){
-        // console.log("Starting to split to clusters of total count", markers.length)
 
         markers.forEach((marker)=>{
             marker.setActive(false);
@@ -310,7 +321,7 @@ export default class ClusterMarkerLayer extends MapObject{
             cluster.release();
         });
         
-        this.mainClusters = clusters.map((data) => createCluster(data, this.map, this.radius, this.clusterReactElement))
+        this.mainClusters = clusters.map((data) => createCluster(data, this.map, this.radius, this._useAverageLocation, this.clusterReactElement))
 
         this.mainClusters.forEach((cluster)=>{
             const allSubclusters = [cluster, ...cluster.getAllSubclusters()]; // Including itself

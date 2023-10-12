@@ -80,14 +80,14 @@ function App() {
 
     setLayers([])
 
-    // const layer1 = map.createClusterLayer((count)=>{
-    //   return <div style={{backgroundColor:"white"}}>
-    //       <h1>Count: {count}</h1>
-    //   </div>
-    // });
+    const layer1 = map.createClusterLayer((count)=>{
+      return <div style={{backgroundColor:"white"}}>
+          <h1>Count: {count}</h1>
+      </div>
+    });
 
 
-    const layer1 = map.createLayer();
+    // const layer1 = map.createLayer();
 
     const geom = map.createGeometry([[
       [50.02307171162239, 14.290628725435235],
